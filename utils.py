@@ -205,6 +205,7 @@ def build_features_by_data(data):
 
 def y_to_bins(df, y, cutoff):
     def condition(x):
+        x = (x-1)*100
         bin = 0
         if x < -10 * cutoff:
             bin = -10
