@@ -19,6 +19,7 @@ class Model(object):
         def one_pred(row):
             row = np.array(row, ndmin=2)
             probs = self.model.predict_proba(row)[0]
+            print(probs)
             weights = [-10 / 16, -5 / 16, -1 / 16, 0, 1 / 16, 5 / 16, 10 / 16]
             weighted_prob = sum([w * p for w, p in zip(weights, probs)])
             return weighted_prob
