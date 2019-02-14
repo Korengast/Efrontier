@@ -49,23 +49,23 @@ def merge_klines(klines, merge_amount):
     return merged_klines
 
 
-def add_ys(df, cutoff, symbol):
+def add_ys(df, cutoff, symbol, merging):
     new_df = copy.deepcopy(df)
-    new_df['y'] = new_df[symbol+'_close_ratio'].shift(-1)
-    new_df['y_R^2'] = new_df[symbol+'_R^2'].shift(-1)
+    new_df['y'] = new_df[symbol+'_close_ratio'].shift(-1*merging)
+    new_df['y_R^2'] = new_df[symbol+'_R^2'].shift(-1*merging)
     def condition(x):
         x = (x - 1) * 100
         bin = 0
         if x < -5 * cutoff:
             bin = -5
-        elif -5 * cutoff < x < -2.5 * cutoff:
-            bin = -2.5
-        elif -2.5 * cutoff < x < cutoff:
+        elif -5 * cutoff < x < -2 * cutoff:
+            bin = -2
+        elif -2 * cutoff < x < cutoff:
             bin = -1
         elif cutoff < x < 2.5 * cutoff:
             bin = 1
-        elif 2.5 * cutoff < x < 5 * cutoff:
-            bin = 2.5
+        elif 2 * cutoff < x < 5 * cutoff:
+            bin = 2
         elif 5 * cutoff < x:
             bin = 5
         return bin
@@ -91,7 +91,19 @@ def merge_assets(assets, file_names, interval):
                                   right_on='timestamp',)
     return merged
 
+def prepare_data(features, CUTOFF, s2pred, merging):
+    features_y = add_ys(features, CUTOFF, s2pred, merging)
+    l = features.shape[0]
+    X_train = np.array(features.iloc[:int(0.8 * l)].drop('timestamp', axis=1))
+    X_valid = np.array(features.iloc[int(0.8 * l):].drop('timestamp', axis=1))
+    y_train = np.array(features_y['y_bins'].iloc[:int(0.8 * l)])
+    y_valid = np.array(features_y['y_bins'].iloc[int(0.8 * l):])
+    df_valid = features.iloc[int(0.8 * l):]
+    df_valid_y = features_y.iloc[int(0.8 * l):]
+    return X_train, X_valid, y_train, y_valid, df_valid, df_valid_y
+
+
 client_intervals = {
-    '1m': Client.KLINE_INTERVAL_1MINUTE,
-    '5m': Client.KLINE_INTERVAL_5MINUTE,
-    '30m': Client.KLINE_INTERVAL_30MINUTE, }
+    '1M': Client.KLINE_INTERVAL_1MINUTE,
+    '5M': Client.KLINE_INTERVAL_5MINUTE,
+    '30M': Client.KLINE_INTERVAL_30MINUTE, }
