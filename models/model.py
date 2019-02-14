@@ -19,10 +19,12 @@ class Model(object):
         def one_pred(row):
             row = np.array(row, ndmin=2)
             probs = self.model.predict_proba(row)[0]
-            print(probs)
-            weights = [-10 / 16, -5 / 16, -1 / 16, 0, 1 / 16, 5 / 16, 10 / 16]
+            # weights = [-10 / 16, -5 / 16, -1 / 16, 0, 1 / 16, 5 / 16, 10 / 16]
             weighted_prob = sum([w * p for w, p in zip(weights, probs)])
             return weighted_prob
 
+        c = np.array(self.model.classes_)
+        tot_w = sum(x for x in c if x > 0)
+        weights = c / tot_w
         predictions = df_no_y.apply(one_pred, axis=1)
         return predictions

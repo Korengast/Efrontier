@@ -141,7 +141,7 @@ def build_features(data):
     # actions = ['mean', 'sum', 'min', 'max']
     # there is no max / min for triang - leave it empty.
     norm_features = ['high/close', 'low/close', 'open/close', 'volume', 'close_ratio']
-    simple_features = ['open', 'close', 'high', 'low', 'volume', 'Number of trades']
+    simple_features = ['open', 'close', 'high', 'low', 'volume', '#trades']
 
     col_name = 'OBV'
     data[col_name] = compute_obv(data)
