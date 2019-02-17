@@ -7,6 +7,8 @@ import logging
 
 MAX_WINDOW = 16
 
+def cheat(data):
+    return data['close'].shift(-1)
 
 def cal_agol(open, close):
     res = []
@@ -135,6 +137,7 @@ def build_features(data):
     data['low/close'] = data['low'] / data['close']
     data['open/close'] = data['open'] / data['close']
     data['is_agol_changed'] = cal_agol(data['close'].tolist(), data['open'].tolist())
+    data['cheat'] = cheat(data)
 
     length = MAX_WINDOW + 1
     momentous = ([n for n in range(0, length) if bin(n).count('1') == 1])
