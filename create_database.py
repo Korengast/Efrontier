@@ -9,9 +9,9 @@ from joblib import Parallel, delayed
 s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-pull_interval = '1M'
+pull_interval = '5M'
 data_interval = '30M'
-merging = 30  # Should be equal to data_interval/pull_interval
+merging = 6  # Should be equal to data_interval/pull_interval
 data_intervals = pull_interval + '_' + data_interval
 
 kl_file_names = []
