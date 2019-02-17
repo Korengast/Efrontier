@@ -1,7 +1,9 @@
 __author__ = "Koren Gast"
 import pandas as pd
 
-results_file_name = 'predictions/BTCUSDT.csv'
-res_df = pd.read_csv(results_file_name)[['timestamp', 'BTCUSDT_close', 'y_bins', 'predictions']]
+file_path = 'predictions/5M_30M/'
+file_name = 'RandomForest_10_NEOUSDT.csv'
+res_df = pd.read_csv(file_path + file_name)
+
 
 pos_df = res_df[res_df['y_bins'] > 0]

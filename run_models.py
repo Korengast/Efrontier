@@ -6,16 +6,16 @@ from models.random_forest import RandomForest
 import pandas as pd
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
-N_ESTIMATORS = [10]
+N_ESTIMATORS = [1000]
 s_date = '01 Jan, 2019'
-e_date = '02 Jan, 2019'
-# symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-symbols = ['NEOUSDT']
+e_date = '07 Jan, 2019'
+symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+# symbols = ['NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
-# symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-symbols_to_predict = ['NEOUSDT']
+symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+# symbols_to_predict = ['NEOUSDT']
 merging = 6  # Should be equal to data_interval/pull_interval
 models = dict()
 for n_est in N_ESTIMATORS:

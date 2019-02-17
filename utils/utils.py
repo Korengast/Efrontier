@@ -6,8 +6,6 @@ import numpy as np
 from utils.api_keys import api_private, api_public
 from scipy.stats import linregress
 
-FEATURES_LENGTH = 10
-
 
 def get_klines(s_date, e_date, symbol, interval):
     client = Client(api_public, api_private)

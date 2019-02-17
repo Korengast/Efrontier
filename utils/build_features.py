@@ -138,8 +138,6 @@ def build_features(data):
 
     length = MAX_WINDOW + 1
     momentous = ([n for n in range(0, length) if bin(n).count('1') == 1])
-    # actions = ['mean', 'sum', 'min', 'max']
-    # there is no max / min for triang - leave it empty.
     norm_features = ['high/close', 'low/close', 'open/close', 'volume', 'close_ratio']
     simple_features = ['open', 'close', 'high', 'low', 'volume', '#trades']
 

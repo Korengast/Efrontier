@@ -5,7 +5,7 @@ import pandas as pd
 import pathlib
 
 s_date = '01 Jan, 2019'
-e_date = '02 Jan, 2019'
+e_date = '07 Jan, 2019'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
