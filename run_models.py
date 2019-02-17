@@ -8,18 +8,31 @@ import pandas as pd
 CUTOFF = 0.15  # in percents. The minimal value of ascending
 N_ESTIMATORS = [1000]
 s_date = '01 Jan, 2019'
-e_date = '07 Jan, 2019'
+e_date = '31 Jan, 2019'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 # symbols = ['NEOUSDT']
-pull_interval = '5M'
+pull_interval = '1M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
 symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 # symbols_to_predict = ['NEOUSDT']
-merging = 6  # Should be equal to data_interval/pull_interval
+merging = 30  # Should be equal to data_interval/pull_interval
 models = dict()
+
+class_weight = {
+    -5: 50,
+    -2: 20,
+    -1: 10,
+    0: 1,
+    1: 10,
+    2: 20,
+    5: 50,
+                }
+
 for n_est in N_ESTIMATORS:
-    models['RandomForest_' + str(n_est)] = RandomForest(n_est)
+    models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
+
+
 
 
 
