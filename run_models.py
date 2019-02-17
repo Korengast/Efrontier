@@ -6,17 +6,17 @@ from models.random_forest import RandomForest
 import pandas as pd
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
-N_ESTIMATORS = [1000]
+N_ESTIMATORS = [100]
 s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 # symbols = ['NEOUSDT']
-pull_interval = '1M'
+pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
 symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 # symbols_to_predict = ['NEOUSDT']
-merging = 30  # Should be equal to data_interval/pull_interval
+merging = 6  # Should be equal to data_interval/pull_interval
 models = dict()
 
 class_weight = {
@@ -32,23 +32,26 @@ class_weight = {
 for n_est in N_ESTIMATORS:
     models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
 
-
-
-
-
 kl_file_names = []
 for symbol in symbols:
+    print(symbol)
     kl_f_name = symbol + '_' + s_date + '_TO_' + e_date + '.csv'
     kl_file_names.append(kl_f_name)
 features_file_names = []
+
 for kl_f in kl_file_names:
+    print(kl_f)   
     features_f_name = kl_f
     features_file_names.append(features_f_name)
 
+print('a')
 features = merge_assets(symbols, features_file_names, data_intervals)
+print('b')
 
 for s2pred in symbols_to_predict:
+    print('c')
     X_train, X_valid, y_train, y_valid, df_valid, df_valid_y = prepare_data(features, CUTOFF, s2pred, merging)
+    print('d')
     for model_name in models.keys():
         model = models[model_name]
         model.fit(X=X_train, y=y_train)
