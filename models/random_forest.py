@@ -8,3 +8,6 @@ class RandomForest(Model):
         super().__init__()
         self.model = RandomForestClassifier(n_estimators=n_estimators)
         self.name = "Random forest"
+
+    def get_feture_importances(self):
+        return self.model.feature_importances_

@@ -60,9 +60,9 @@ def add_ys(df, cutoff, symbol, merging):
             bin = -5
         elif -5 * cutoff < x < -2 * cutoff:
             bin = -2
-        elif -2 * cutoff < x < cutoff:
+        elif -2 * cutoff < x < -1*cutoff:
             bin = -1
-        elif cutoff < x < 2.5 * cutoff:
+        elif cutoff < x < 2 * cutoff:
             bin = 1
         elif 2 * cutoff < x < 5 * cutoff:
             bin = 2
@@ -76,10 +76,10 @@ def add_ys(df, cutoff, symbol, merging):
     return new_df
 
 
-def merge_assets(assets, file_names, interval):
+def merge_assets(assets, file_names, intervals):
     dfs = dict()
     for a, f in zip(assets, file_names):
-        dfs[a] = pd.read_csv('features/' + interval + '/' + f)
+        dfs[a] = pd.read_csv('features/' + intervals + '/' + f)
         dfs[a].columns = [a + '_' + str(col) if str(col) != 'timestamp' else str(col) for col in dfs[a].columns]
     merged = pd.DataFrame()
     for k in dfs.keys():
