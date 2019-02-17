@@ -75,29 +75,37 @@ def add_ys(df, cutoff, symbol, merging):
 
 
 def merge_assets(assets, file_names, intervals):
-    dfs = dict()
-    for a, f in zip(assets, file_names):
-        dfs[a] = pd.read_csv('features/' + intervals + '/' + f)
-        dfs[a].columns = [a + '_' + str(col) if str(col) != 'timestamp' else str(col) for col in dfs[a].columns]
     merged = pd.DataFrame()
-    for k in dfs.keys():
+    for a, f in zip(assets, file_names):
+        print(a)
+        df = pd.read_csv('features/' + intervals + '/' + f)
+        df.columns = [a + '_' + str(col) if str(col) != 'timestamp' else str(col) for col in df.columns]
+
         if merged.shape == (0, 0):
-            merged = dfs[k]
+            merged = df
         else:
-            merged = merged.merge(dfs[k],
+            merged = merged.merge(df,
                                   left_on='timestamp',
                                   right_on='timestamp',)
     return merged
 
 def prepare_data(features, CUTOFF, s2pred, merging):
     features_y = add_ys(features, CUTOFF, s2pred, merging)
+    print('x1')
     l = features.shape[0]
+    print('x2')
     X_train = np.array(features.iloc[:int(0.8 * l)].drop('timestamp', axis=1))
+    print('x3')
     X_valid = np.array(features.iloc[int(0.8 * l):].drop('timestamp', axis=1))
+    print('x4')
     y_train = np.array(features_y['y_bins'].iloc[:int(0.8 * l)])
+    print('x5')
     y_valid = np.array(features_y['y_bins'].iloc[int(0.8 * l):])
+    print('x6')
     df_valid = features.iloc[int(0.8 * l):]
+    print('x7')
     df_valid_y = features_y.iloc[int(0.8 * l):]
+    print('x8')
     return X_train, X_valid, y_train, y_valid, df_valid, df_valid_y
 
 
