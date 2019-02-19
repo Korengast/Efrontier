@@ -5,10 +5,35 @@ import numpy as np
 import collections
 import logging
 
-MAX_WINDOW = 16
+MAX_WINDOW = 4
 
 def cheat(data):
-    return data['close'].shift(-1)
+    new_df = copy.deepcopy(data)
+    new_df['y'] = new_df['close_ratio'].shift(-6)
+    new_df['y_R^2'] = new_df['R^2'].shift(-6)
+
+    def condition(x):
+        cutoff = 0.15
+        x = (x - 1) * 100
+        bin = 0
+        if x < -5 * cutoff:
+            bin = -5
+        elif -5 * cutoff < x < -2 * cutoff:
+            bin = -2
+        elif -2 * cutoff < x < -1 * cutoff:
+            bin = -1
+        elif cutoff < x < 2 * cutoff:
+            bin = 1
+        elif 2 * cutoff < x < 5 * cutoff:
+            bin = 2
+        elif 5 * cutoff < x:
+            bin = 5
+        return bin
+
+    new_df['y%'] = (new_df['y'] - 1) * 100
+    new_df['y*r2'] = ((new_df['y%'] * new_df['y_R^2']) / 100) + 1
+    new_df['y_bins'] = new_df['y*r2'].apply(condition)
+    return new_df['y_bins']
 
 def cal_agol(open, close):
     res = []
@@ -19,7 +44,7 @@ def cal_agol(open, close):
 
 def compute_RSI(momentum_size, data):
     temp_data = copy.deepcopy(data)
-    temp_data['diff'] = temp_data['close'] - temp_data['last_close']
+    temp_data['diff'] = temp_data['close'] - temp_data['close'].shift(1)
     diff_aggregation = collections.OrderedDict()
     for i in range(0, momentum_size):
         diff_aggregation['diff' + str(-1 * i)] = temp_data['diff'].shift(i)
@@ -94,7 +119,7 @@ def compute_obv(data):
     temp_data = copy.deepcopy(data)
     volume = temp_data['volume'].tolist()
     close = temp_data['close'].tolist()
-    last_close = temp_data['last_close'].tolist()
+    last_close = temp_data['close'].shift(1).tolist()
     obvs = []
     for v, c, l in zip(volume, close, last_close):
         obv = v if not obvs else obvs[-1]
@@ -105,6 +130,12 @@ def compute_obv(data):
         obvs.append(obv)
     return obvs
 
+def exponential_smoothing(df, alpha=0.9):
+    c = list(df['close'])
+    result = [c[0]]
+    for n in range(1, len(c)):
+        result.append(alpha * c[n] + (1 - alpha) * result[n - 1])
+    return result
 
 def getDuplicateColumns(df):
     '''
@@ -129,19 +160,25 @@ def getDuplicateColumns(df):
     return list(duplicateColumnNames)
 
 
-def build_features(data):
+
+
+
+def build_features(data, merging):
     data = copy.deepcopy(data)
-    data['last_close'] = data['close'].shift(1)
-    data['close_ratio'] = data['close'] / data['last_close']
+    # data['last_close'] = data['close'].shift(1)
+    data['close_ratio'] = data['close'] / data['close'].shift(1)
     data['high/close'] = data['high'] / data['close']
     data['low/close'] = data['low'] / data['close']
     data['open/close'] = data['open'] / data['close']
     data['is_agol_changed'] = cal_agol(data['close'].tolist(), data['open'].tolist())
-    data['cheat'] = cheat(data)
+    # data['cheat'] = cheat(data)
+    data['close_expoSmooth'] = exponential_smoothing(data, 0.8)
 
     length = MAX_WINDOW + 1
     momentous = ([n for n in range(0, length) if bin(n).count('1') == 1])
+    momentous = ([m*merging for m in momentous])
     norm_features = ['high/close', 'low/close', 'open/close', 'volume', 'close_ratio']
+    # simple_features = ['open', 'close', 'high', 'low', 'volume', '#trades']
     simple_features = ['open', 'close', 'high', 'low', 'volume', '#trades']
 
     col_name = 'OBV'
@@ -187,8 +224,9 @@ def build_features(data):
             if inf_res or none_res:
                 numpy_col = np.nan_to_num(numpy_col)
             data[col] = numpy_col
+    data = data.drop(columns=['close', 'open', 'high', 'low'])
     data = data.drop(columns=getDuplicateColumns(data))
     return data
 
 
-# TODO: exp_smoothing, Holt-Winters
+# TODO: Holt-Winters?

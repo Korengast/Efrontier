@@ -73,12 +73,20 @@ def add_ys(df, cutoff, symbol, merging):
     new_df['y_bins'] = new_df['y*r2'].apply(condition)
     return new_df
 
+def drop_unimportants(df):
+    cols = list(df.columns)
+    unimportnats = [x for x in cols if 'min' in x
+                    or 'max' in x
+                    or 'high_ratio' in x
+                    or 'low_ratio' in x]
+    return df.drop(unimportnats, axis=1)
 
 def merge_assets(assets, file_names, intervals):
     merged = pd.DataFrame()
     for a, f in zip(assets, file_names):
         print(a)
         df = pd.read_csv('features/' + intervals + '/' + f)
+        df = drop_unimportants(df)
         df.columns = [a + '_' + str(col) if str(col) != 'timestamp' else str(col) for col in df.columns]
 
         if merged.shape == (0, 0):
@@ -87,6 +95,7 @@ def merge_assets(assets, file_names, intervals):
             merged = merged.merge(df,
                                   left_on='timestamp',
                                   right_on='timestamp',)
+    merged = merged[DropCorrelated(merged, 0.95)]
     return merged
 
 def prepare_data(features, CUTOFF, s2pred, merging):
@@ -107,6 +116,21 @@ def prepare_data(features, CUTOFF, s2pred, merging):
     df_valid_y = features_y.iloc[int(0.8 * l):]
     print('x8')
     return X_train, X_valid, y_train, y_valid, df_valid, df_valid_y
+
+def DropCorrelated(data, corr_threshold):
+    corr_mat = data.corr(method='pearson')
+    corr_mat.loc[:, :] = np.tril(corr_mat, k=-1)
+    already_in = set()
+    result = []
+    for col in corr_mat:
+        perfect_corr = corr_mat[col][corr_mat[col] > corr_threshold].index.tolist()
+        if col not in already_in:
+            perfect_corr.append(col)
+            already_in.update(set(perfect_corr))
+            result.append(col)
+        # select_nested = [f[1:] for f in result]
+        # select_flat = [i for j in select_nested for i in j]
+    return result
 
 
 client_intervals = {

@@ -5,8 +5,7 @@ import pandas as pd
 import pathlib
 from joblib import Parallel, delayed
 
-
-s_date = '01 Jan, 2019'
+s_date = '31 Jan, 2018'
 e_date = '31 Jan, 2019'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 pull_interval = '5M'
@@ -34,16 +33,16 @@ def load_symbol(symbol):
     return kl_f_name
 
 #for kl_f in kl_file_names:
-def build_feature(kl_f):
+def build_feature(kl_f, merging):
     print(kl_f)
     features_f_name = kl_f
     klines = pd.read_csv('klines/' + data_intervals + '/' + kl_f)
-    features = build_features(klines)
+    features = build_features(klines, merging)
     pathlib.Path('features/' + data_intervals).mkdir(exist_ok=True)
     features.to_csv('features/' + data_intervals + '/' + features_f_name, index=False)
 
 
 results = Parallel(n_jobs=10)(delayed(load_symbol)(e) for e in symbols)
 print(results)
-Parallel(n_jobs=10)(delayed(build_feature)(e) for e in results)
+Parallel(n_jobs=10)(delayed(build_feature)(e, merging) for e in results)
 print('Database created')
