@@ -8,12 +8,14 @@ from models.lstm import LSTM_model
 from models.adaBoost import AdaBoost
 import pandas as pd
 import numpy as np
+from datetime import datetime
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
-N_ESTIMATORS = [50, 100, 300]
-EPOCHS = 10
-MOUNTH_DATA_ROWS = int(30*24*(60/5))
-s_date = '31 Jan, 2018'
+# N_ESTIMATORS = [50, 100, 300]
+N_ESTIMATORS = [1]
+EPOCHS = 1
+MOUNTH_DATA_ROWS = int(30 * 24 * (60 / 5))
+s_date = '31 Jan, 2017'
 # s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 # e_date = '02 Jan, 2019'
@@ -22,8 +24,8 @@ symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
-symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-# symbols_to_predict = ['NEOUSDT']
+# symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+symbols_to_predict = ['NEOUSDT']
 merging = 6  # Should be equal to data_interval/pull_interval
 models = dict()
 
@@ -60,32 +62,93 @@ print('a')
 features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
 jklines = join_assets(symbols, kl_file_names, data_intervals, is_features=False)
 
-models['LSTM'] = LSTM_model(jklines.shape[1] - 1, 7)
+# models['LSTM'] = LSTM_model(jklines.shape[1] - 1, 7)
+models['conv1D'] = LSTM_model(jklines.shape[1] - 1, 7)
 
 TOTAL_DATA_ROWS = features.shape[0]
+cross_data_endpoints = list(range(12 * MOUNTH_DATA_ROWS, TOTAL_DATA_ROWS, MOUNTH_DATA_ROWS))
+print(cross_data_endpoints)
+
 for s2pred in symbols_to_predict:
-
-    X_train, X_valid, y_train, y_valid, df_train_y, df_valid, df_valid_y = prepare_data(jklines, CUTOFF, s2pred,
-                                                                                        merging,
-                                                                                        is_features=False)
-    print('d')
     for model_name in models.keys():
+        is_keras = 'LSTM' in model_name or 'conv1D' in model_name
+        result = {
+            'model_symbol': [model_name + '_' + s2pred],
+            'train_s_date': [[]],
+            'valid_s_date': [[]],
+            'valid_e_date': [[]],
+            'measure': [[]],
+            'avg_y%': [[]],
+            'value_to_buy': [[]]
+        }
         model = models[model_name]
-        model.fit(X=X_train, y=y_train, epochs=EPOCHS)
-        df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
-        if 'LSTM' not in model_name:
-            f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
-            df_valid_y.loc['feature_importance'] = f_imp
+        n_round = 0
+        for ep in cross_data_endpoints:
+            n_round += 1
+            if not is_keras:
+                cross_data = features.iloc[:ep]
+                is_features = True
+            else:
+                cross_data = jklines.iloc[:ep]
+                is_features = False
+            X_train, X_valid, y_train, y_valid, df_train_y, df_valid, df_valid_y = \
+                prepare_data(cross_data, CUTOFF, s2pred, merging, is_features=is_features)
+            print('d')
+            # for model_name in models.keys():
+            #     model = models[model_name]
+            if not is_keras:
+                model.fit(X=X_train, y=y_train)
+            else:
+                model.fit(X=X_train, y=y_train, epochs=EPOCHS)
+            df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
+            if not is_keras:
+                f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
+                df_valid_y.loc['feature_importance'] = f_imp
 
-        avg_inc_pred = np.mean(df_train_y[df_valid_y['y_bins'] > 0]['predictions'])
-        measure = np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y_bins']) - np.mean(
-            df_valid_y['y_bins'])
-        measure = measure / np.mean(df_valid_y['y_bins'])
-        measure = round(float(measure) * 100, 2)
+            avg_inc_pred = np.mean(df_valid_y[df_valid_y['y_bins'] > 0]['predictions'])
+            measure = np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y_bins']) - np.mean(
+                df_valid_y['y_bins'])
+            measure = measure / np.mean(df_valid_y['y_bins'])
+            measure = round(measure * 100, 2)
 
-        pathlib.Path('predictions/' + data_intervals).mkdir(exist_ok=True)
-        pred_file_name = model_name + '_' + s2pred
-        df_valid_y.to_csv('predictions/' + data_intervals + '/' + pred_file_name +
-                          '_' + str(measure) + '.csv', index=False)
+            pathlib.Path('predictions/' + data_intervals).mkdir(exist_ok=True)
+            pred_file_name = model_name + '_' + s2pred
+            l = cross_data.shape[0]
+
+            result['train_s_date'][0].append(datetime.utcfromtimestamp(cross_data.iloc[0]['timestamp'] / 1000))
+            result['valid_s_date'][0].append(datetime.utcfromtimestamp(cross_data.iloc[int(0.9 * l)]['timestamp'] / 1000))
+            result['valid_e_date'][0].append(datetime.utcfromtimestamp(cross_data.iloc[l - 1]['timestamp'] / 1000))
+            result['measure'][0].append(measure)
+            result['avg_y%'][0].append(np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y%']))
+            result['value_to_buy'][0].append(avg_inc_pred)
+
+            # one_result = {
+            #     'model_symbol': [model_name + '_' + s2pred],
+            #     'train_s_date' + str(n_round): [datetime.utcfromtimestamp(cross_data.iloc[0]['timestamp'] / 1000)],
+            #     'valid_s_date' + str(n_round): [
+            #         datetime.utcfromtimestamp(cross_data.iloc[int(0.9 * l)]['timestamp'] / 1000)],
+            #     'valid_e_date' + str(n_round): [datetime.utcfromtimestamp(cross_data.iloc[l - 1]['timestamp'] / 1000)],
+            #     'measure' + str(n_round): [measure],
+            #     'avg_y%' + str(n_round): [np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y%'])],
+            #     'value_to_buy' + str(n_round): [avg_inc_pred]
+            # }
+
+            # one_result = pd.DataFrame(one_result)
+            # if results.shape == (0, 0):
+            #     results = one_result
+            # else:
+            #     results = results.merge(one_result,
+            #                             left_on='model_symbol',
+            #                             right_on='model_symbol', )
+            # dates = str(datetime.date(results['train_s_date'+str(n_round)][0])) + '/' + str(datetime.date(results['valid_e_date'+str(n_round)][0]))
+            dates = str(cross_data.iloc[int(0.9 * l)]['timestamp']) + '_' + str(cross_data.iloc[l-1]['timestamp'])
+            pathlib.Path('predictions/' + data_intervals + '/' + model_name).mkdir(exist_ok=True)
+            df_valid_y.to_csv('predictions/' + data_intervals + '/' + model_name + '/' + pred_file_name +
+                              '_' + str(measure) + '_' + dates + '.csv', index=False)
+        result = pd.DataFrame(result)
+        result['total_measure'] = np.mean(result.iloc[0]['measure'])
+        result['total_y%'] = np.mean(result.iloc[0]['avg_y%'][0])
+        result.to_csv('results.csv', mode='a', header=False, index=False)
+
 
 print('Done')

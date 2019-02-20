@@ -7,21 +7,21 @@ from utils.utils import to_categorical
 import numpy as np
 
 
-class LSTM_model(GenModel):
+class conv1D_model(GenModel):
     def __init__(self, n_features, n_bins):
         super().__init__()
         self.model = self.build(n_features, n_bins)
         self.model.compile(loss='categorical_crossentropy', optimizer='adam')
         self.scaler = MinMaxScaler(feature_range=(0, 1))
-        self.name = "LSTM"
+        self.name = "conv1D"
         self.oh_dict = dict()
 
     def build(self, n_features, n_bins):
         inputs = Input(shape=(n_features,))
         X = Conv1D(100, 10)(inputs)
-        X = Conv1D(100, 10)(X)
+        # X = Conv1D(100, 10)(X)
         X = MaxPooling1D(3)(X)
-        X = Conv1D(100, 10, activation='relu')(X)
+        # X = Conv1D(100, 10, activation='relu')(X)
         X = Conv1D(100, 10, activation='relu')(X)
         X = GlobalAveragePooling1D()(X)
         outputs = Dense(n_bins, activation='softmax')(X)
