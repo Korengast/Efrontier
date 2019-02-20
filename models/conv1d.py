@@ -1,6 +1,6 @@
 __author__ = "Koren Gast"
 from models.model import Model as GenModel
-from keras.layers import Dense, Input, LSTM
+from keras.layers import Dense, Input, Conv1D, MaxPooling1D, GlobalAveragePooling1D
 from keras.models import Model
 from sklearn.preprocessing import MinMaxScaler
 from utils.utils import to_categorical
@@ -17,11 +17,14 @@ class LSTM_model(GenModel):
         self.oh_dict = dict()
 
     def build(self, n_features, n_bins):
-        inputs = Input(shape=(1, n_features))
-        X = Dense(n_features, activation='tanh')(inputs)
-        X = Dense(n_features, activation='relu')(X)
-        X = LSTM(256)(X)
-        outputs = Dense(n_bins, activation='sigmoid')(X)
+        inputs = Input(shape=(n_features,))
+        X = Conv1D(100, 10)(inputs)
+        X = Conv1D(100, 10)(X)
+        X = MaxPooling1D(3)(X)
+        X = Conv1D(100, 10, activation='relu')(X)
+        X = Conv1D(100, 10, activation='relu')(X)
+        X = GlobalAveragePooling1D()(X)
+        outputs = Dense(n_bins, activation='softmax')(X)
         model = Model(inputs=inputs, outputs=outputs)
         print(model.summary())
         return model

@@ -121,8 +121,9 @@ def prepare_data(features, CUTOFF, s2pred, merging, is_features=True):
     df_valid = features.iloc[int(0.8 * l):]
     print('x7')
     df_valid_y = features_y.iloc[int(0.8 * l):]
+    df_train_y = features_y.iloc[:int(0.8 * l)]
     print('x8')
-    return X_train, X_valid, y_train, y_valid, df_valid, df_valid_y
+    return X_train, X_valid, y_train, y_valid, df_train_y, df_valid, df_valid_y
 
 def DropCorrelated(data, corr_threshold):
     corr_mat = data.corr(method='pearson')
@@ -138,6 +139,18 @@ def DropCorrelated(data, corr_threshold):
         # select_nested = [f[1:] for f in result]
         # select_flat = [i for j in select_nested for i in j]
     return result
+
+def to_categorical(arr):
+    uniques = np.unique(arr)
+    n_values = uniques.shape[0]
+    one_hot = np.eye(n_values)[arr.reshape(-1)]
+    oh_dict_array = np.eye(n_values)[uniques]
+    oh_dict = dict()
+    for i in range(0,n_values):
+        oh_dict[uniques[i]] = oh_dict_array[i,:]
+    return one_hot, oh_dict
+
+
 
 
 client_intervals = {

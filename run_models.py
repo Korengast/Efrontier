@@ -11,8 +11,12 @@ import numpy as np
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
 N_ESTIMATORS = [50, 100, 300]
+EPOCHS = 10
+MOUNTH_DATA_ROWS = int(30*24*(60/5))
 s_date = '31 Jan, 2018'
+# s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
+# e_date = '02 Jan, 2019'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 # symbols = ['NEOUSDT']
 pull_interval = '5M'
@@ -31,7 +35,7 @@ class_weight = {
     1: 10,
     2: 20,
     5: 50,
-                }
+}
 
 for n_est in N_ESTIMATORS:
     pass
@@ -53,28 +57,31 @@ for kl_f in kl_file_names:
     features_file_names.append(features_f_name)
 
 print('a')
-# features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
+features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
 jklines = join_assets(symbols, kl_file_names, data_intervals, is_features=False)
-print('b')
-# TODO: Prepare data for LSTM (no feature, just merging raw data)
 
-models['LSTM'] = LSTM_model(jklines.shape[1]-1, 6)
+models['LSTM'] = LSTM_model(jklines.shape[1] - 1, 7)
 
+TOTAL_DATA_ROWS = features.shape[0]
 for s2pred in symbols_to_predict:
-    print('c')
-    X_train, X_valid, y_train, y_valid, df_valid, df_valid_y = prepare_data(jklines, CUTOFF, s2pred, merging, is_features=False)
+
+    X_train, X_valid, y_train, y_valid, df_train_y, df_valid, df_valid_y = prepare_data(jklines, CUTOFF, s2pred,
+                                                                                        merging,
+                                                                                        is_features=False)
     print('d')
     for model_name in models.keys():
         model = models[model_name]
-        model.fit(X=X_train, y=y_train)
+        model.fit(X=X_train, y=y_train, epochs=EPOCHS)
         df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
         if 'LSTM' not in model_name:
             f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
             df_valid_y.loc['feature_importance'] = f_imp
 
-        avg_inc_pred = np.mean(df_valid_y[df_valid_y['y_bins'] > 0]['predictions'])
-        measure = np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y_bins']) - np.mean(df_valid_y['y_bins'])
-        measure = round(float(measure)*100, 2)
+        avg_inc_pred = np.mean(df_train_y[df_valid_y['y_bins'] > 0]['predictions'])
+        measure = np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y_bins']) - np.mean(
+            df_valid_y['y_bins'])
+        measure = measure / np.mean(df_valid_y['y_bins'])
+        measure = round(float(measure) * 100, 2)
 
         pathlib.Path('predictions/' + data_intervals).mkdir(exist_ok=True)
         pred_file_name = model_name + '_' + s2pred
@@ -82,4 +89,3 @@ for s2pred in symbols_to_predict:
                           '_' + str(measure) + '.csv', index=False)
 
 print('Done')
-

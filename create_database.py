@@ -5,7 +5,7 @@ import pandas as pd
 import pathlib
 from joblib import Parallel, delayed
 
-s_date = '31 Jan, 2018'
+s_date = '31 Jan, 2017'
 e_date = '31 Jan, 2019'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 pull_interval = '5M'
