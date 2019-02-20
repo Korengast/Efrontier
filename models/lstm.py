@@ -19,13 +19,13 @@ class LSTM_model(GenModel):
         inputs = Input(shape=(1, n_features))
         X = Dense(n_features, activation='tanh')(inputs)
         X = Dense(n_features, activation='relu')(X)
-        X = LSTM(64)(X)
+        X = LSTM(256)(X)
         outputs = Dense(n_bins, activation='sigmoid')(X)
         model = Model(inputs=inputs, outputs=outputs)
         print(model.summary())
         return model
 
-    def fit(self, X, y, epochs=10, batch_size=30):
+    def fit(self, X, y, epochs=20, batch_size=30):
         X = self.scaler.fit_transform(X)
         X = X.reshape(X.shape[0], 1, X.shape[1])
         y = to_categorical(y)
@@ -40,7 +40,7 @@ class LSTM_model(GenModel):
             weighted_prob = sum([w * p for w, p in zip(weights, probs)])
             return weighted_prob
 
-        c = np.array([-5, -2, -1, 0, 1, 2, 5])
+        c = np.array([-5, -2, -1, 1, 2, 5])
         # c = np.array([-1, 0, 1])
         tot_w = sum(x for x in c if x > 0)
         weights = c / tot_w

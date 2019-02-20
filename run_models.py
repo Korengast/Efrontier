@@ -1,6 +1,6 @@
 __author__ = "Koren Gast"
 
-from utils.utils import merge_assets, prepare_data
+from utils.utils import join_assets, prepare_data
 import pathlib
 from models.random_forest import RandomForest
 from models.MLP import MLP
@@ -18,8 +18,8 @@ symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
-# symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-symbols_to_predict = ['NEOUSDT']
+symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+# symbols_to_predict = ['NEOUSDT']
 merging = 6  # Should be equal to data_interval/pull_interval
 models = dict()
 
@@ -48,26 +48,29 @@ for symbol in symbols:
 features_file_names = []
 
 for kl_f in kl_file_names:
-    print(kl_f)   
+    print(kl_f)
     features_f_name = kl_f
     features_file_names.append(features_f_name)
 
 print('a')
-features = merge_assets(symbols, features_file_names, data_intervals)
+# features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
+jklines = join_assets(symbols, kl_file_names, data_intervals, is_features=False)
 print('b')
 # TODO: Prepare data for LSTM (no feature, just merging raw data)
-models['LSTM'] = LSTM_model(features.shape[1]-1, 6)
+
+models['LSTM'] = LSTM_model(jklines.shape[1]-1, 6)
 
 for s2pred in symbols_to_predict:
     print('c')
-    X_train, X_valid, y_train, y_valid, df_valid, df_valid_y = prepare_data(features, CUTOFF, s2pred, merging)
+    X_train, X_valid, y_train, y_valid, df_valid, df_valid_y = prepare_data(jklines, CUTOFF, s2pred, merging, is_features=False)
     print('d')
     for model_name in models.keys():
         model = models[model_name]
         model.fit(X=X_train, y=y_train)
         df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
-        f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
-        df_valid_y.loc['feature_importance'] = f_imp
+        if 'LSTM' not in model_name:
+            f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
+            df_valid_y.loc['feature_importance'] = f_imp
 
         avg_inc_pred = np.mean(df_valid_y[df_valid_y['y_bins'] > 0]['predictions'])
         measure = np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y_bins']) - np.mean(df_valid_y['y_bins'])

@@ -47,8 +47,10 @@ def merge_klines(klines, merge_amount):
     return merged_klines
 
 
-def add_ys(df, cutoff, symbol, merging):
+def add_ys(df, cutoff, symbol, merging, is_features):
     new_df = copy.deepcopy(df)
+    if not is_features:
+        new_df[symbol+'_close_ratio'] = new_df[symbol+'_close'] / new_df[symbol+'_close'].shift(1)
     new_df['y'] = new_df[symbol+'_close_ratio'].shift(-1*merging)
     new_df['y_R^2'] = new_df[symbol+'_R^2'].shift(-1*merging)
     def condition(x):
@@ -81,11 +83,14 @@ def drop_unimportants(df):
                     or 'low_ratio' in x]
     return df.drop(unimportnats, axis=1)
 
-def merge_assets(assets, file_names, intervals):
+def join_assets(assets, file_names, intervals, is_features=True):
     merged = pd.DataFrame()
     for a, f in zip(assets, file_names):
         print(a)
-        df = pd.read_csv('features/' + intervals + '/' + f)
+        if is_features:
+            df = pd.read_csv('features/' + intervals + '/' + f)
+        else:
+            df = pd.read_csv('klines/' + intervals + '/' + f)
         df = drop_unimportants(df)
         df.columns = [a + '_' + str(col) if str(col) != 'timestamp' else str(col) for col in df.columns]
 
@@ -95,11 +100,13 @@ def merge_assets(assets, file_names, intervals):
             merged = merged.merge(df,
                                   left_on='timestamp',
                                   right_on='timestamp',)
-    merged = merged[DropCorrelated(merged, 0.95)]
+    if is_features:
+        merged = merged[DropCorrelated(merged, 0.95)]
     return merged
 
-def prepare_data(features, CUTOFF, s2pred, merging):
-    features_y = add_ys(features, CUTOFF, s2pred, merging)
+
+def prepare_data(features, CUTOFF, s2pred, merging, is_features=True):
+    features_y = add_ys(features, CUTOFF, s2pred, merging, is_features)
     print('x1')
     l = features.shape[0]
     print('x2')
