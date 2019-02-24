@@ -16,13 +16,14 @@ class conv1D_model(GenModel):
         self.name = "conv1D"
         self.oh_dict = dict()
 
-    def build(self, n_features, n_bins):
-        inputs = Input(shape=(n_features,))
-        X = Conv1D(100, 10)(inputs)
+    def build(self, seq_length, n_features, n_bins):
+        inputs = Input(shape=(1, n_features))
+        X = Dense(n_features, activation='tanh')(inputs)
+        X = Conv1D(5, 5)(X)
         # X = Conv1D(100, 10)(X)
-        X = MaxPooling1D(3)(X)
+        # X = MaxPooling1D(3)(X)
         # X = Conv1D(100, 10, activation='relu')(X)
-        X = Conv1D(100, 10, activation='relu')(X)
+        # X = Conv1D(10, 10, activation='relu')(X)
         X = GlobalAveragePooling1D()(X)
         outputs = Dense(n_bins, activation='softmax')(X)
         model = Model(inputs=inputs, outputs=outputs)
@@ -30,6 +31,15 @@ class conv1D_model(GenModel):
         return model
 
     def fit(self, X, y, epochs=20, batch_size=30):
+        def create_dataset(dataset, look_back=1):
+            dataX, dataY = [], []
+            for i in range(len(dataset) - look_back):
+                a = dataset[i:(i + look_back), 0]
+                dataX.append(a)
+                dataY.append(dataset[i + look_back, 0])
+            return np.array(dataX), np.array(dataY)
+
+
         X = self.scaler.fit_transform(X)
         X = X.reshape(X.shape[0], 1, X.shape[1])
         y, oh_dict = to_categorical(y)
