@@ -12,15 +12,16 @@ import numpy as np
 from datetime import datetime
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
-N_ESTIMATORS = [50, 100, 300]
-EPOCHS = 100
+# N_ESTIMATORS = [50, 100, 300]
+N_ESTIMATORS = [100]
+EPOCHS = 10
 MOUNTH_DATA_ROWS = int(30 * 24 * (60 / 5))
-# s_date = '31 Jan, 2017'
-s_date = '01 Jan, 2019'
-# e_date = '31 Jan, 2019'
-e_date = '02 Jan, 2019'
-# symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-symbols = ['NEOUSDT']
+s_date = '31 Jan, 2017'
+# s_date = '01 Jan, 2019'
+e_date = '31 Jan, 2019'
+# e_date = '02 Jan, 2019'
+symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+# symbols = ['NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
@@ -40,8 +41,8 @@ class_weight = {
 }
 
 for n_est in N_ESTIMATORS:
-    pass
-    # models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
+    # pass
+    models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
     # models['AdaBoost_' + str(n_est)] = AdaBoost(n_est, class_weight)
 # models['MLP'] = MLP()
 
@@ -58,13 +59,21 @@ for kl_f in kl_file_names:
     features_f_name = kl_f
     features_file_names.append(features_f_name)
 
+base_cols = ['timestamp', 'NEOUSDT_close_ratio', 'NEOUSDT_R^2']
+base_cols = base_cols + ['BTCUSDT_volume', 'BNBUSDT_close_ratio',
+                         'LTCUSDT_close_ratio', 'LTCUSDT_volume', 'LTCUSDT_R^2']
+
+
 print('a')
+# features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
 features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
+features = features[base_cols]
+features = features.dropna()
 # features = []
 jklines = join_assets(symbols, kl_file_names, data_intervals, is_features=False)
 
 # models['LSTMc_' + str(EPOCHS)] = LSTM_classifier(jklines.shape[1] - 1, 7)
-models['LSTMr_' + str(EPOCHS)] = LSTM_regressor(jklines.shape[1] - 1, 7)
+# models['LSTMr_' + str(EPOCHS)] = LSTM_regressor(jklines.shape[1] - 1, 7)
 # TODO:
 # models['conv1D'] = conv1D_model(jklines.shape[1] - 1, 10, 7)
 
@@ -102,7 +111,6 @@ for s2pred in symbols_to_predict:
             else:
                 # model.fit(X=X_train, y=y_train, epochs=EPOCHS)
                 model.fit(X=X_train, y=np.array(df_train_y['y']), epochs=EPOCHS)
-
             df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
             if not is_keras:
                 f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
@@ -126,9 +134,10 @@ for s2pred in symbols_to_predict:
             result['value_to_buy'][0].append(avg_inc_pred)
 
             dates = str(cross_data.iloc[int(0.9 * l)]['timestamp']) + '_' + str(cross_data.iloc[l-1]['timestamp'])
-            pathlib.Path('predictions/' + data_intervals + '/' + model_name).mkdir(exist_ok=True)
-            # df_valid_y.to_csv('predictions/' + data_intervals + '/' + model_name + '/' + pred_file_name +
-            #                   '_' + str(measure) + '_' + dates + '.csv', index=False)
+            pathlib.Path('predictions/' + data_intervals + '/qualitative/' + model_name).mkdir(exist_ok=True)
+            # df_valid_y.to_csv('try.csv')
+            df_valid_y.to_csv('predictions/' + data_intervals + '/qualitative/' + model_name + '/' + pred_file_name +
+                              '_' + str(measure) + '_' + dates + '.csv', index=False)
         result = pd.DataFrame(result)
         result['total_measure'] = np.mean(result.iloc[0]['measure'])
         result['total_y%'] = np.mean(result.iloc[0]['avg_y%'][0])

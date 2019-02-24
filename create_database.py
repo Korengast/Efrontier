@@ -1,12 +1,13 @@
 __author__ = "Koren Gast"
 from utils.utils import get_klines, merge_klines, client_intervals
-from utils.build_features import build_features
+# from utils.build_features import build_features
+from utils.build_qualitative_features import build_features
 import pandas as pd
 import pathlib
 from joblib import Parallel, delayed
 
-s_date = '31 Jan, 2017'
-e_date = '31 Jan, 2019'
+s_date = '01 Jan, 2018'
+e_date = '31 Jan, 2018'
 symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
@@ -40,6 +41,8 @@ def build_feature(kl_f, merging):
     features = build_features(klines, merging)
     pathlib.Path('features/' + data_intervals).mkdir(exist_ok=True)
     features.to_csv('features/' + data_intervals + '/' + features_f_name, index=False)
+
+
 
 
 results = Parallel(n_jobs=10)(delayed(load_symbol)(e) for e in symbols)

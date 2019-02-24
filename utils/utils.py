@@ -50,9 +50,10 @@ def merge_klines(klines, merge_amount):
 def add_ys(df, cutoff, symbol, merging, is_features):
     new_df = copy.deepcopy(df)
     if not is_features:
-        new_df[symbol+'_close_ratio'] = new_df[symbol+'_close'] / new_df[symbol+'_close'].shift(1)
-    new_df['y'] = new_df[symbol+'_close_ratio'].shift(-1*merging)
-    new_df['y_R^2'] = new_df[symbol+'_R^2'].shift(-1*merging)
+        new_df[symbol + '_close_ratio'] = new_df[symbol + '_close'] / new_df[symbol + '_close'].shift(1)
+    new_df['y'] = new_df[symbol + '_close_ratio'].shift(-1 * merging)
+    new_df['y_R^2'] = new_df[symbol + '_R^2'].shift(-1 * merging)
+
     def condition(x):
         x = (x - 1) * 100
         bin = 0
@@ -60,7 +61,7 @@ def add_ys(df, cutoff, symbol, merging, is_features):
             bin = -5
         elif -5 * cutoff < x < -2 * cutoff:
             bin = -2
-        elif -2 * cutoff < x < -1*cutoff:
+        elif -2 * cutoff < x < -1 * cutoff:
             bin = -1
         elif cutoff < x < 2 * cutoff:
             bin = 1
@@ -75,6 +76,7 @@ def add_ys(df, cutoff, symbol, merging, is_features):
     new_df['y_bins'] = new_df['y*r2'].apply(condition)
     return new_df
 
+
 def drop_unimportants(df):
     cols = list(df.columns)
     unimportnats = [x for x in cols if 'min' in x
@@ -83,7 +85,8 @@ def drop_unimportants(df):
                     or 'low_ratio' in x]
     return df.drop(unimportnats, axis=1)
 
-def join_assets(assets, file_names, intervals, is_features=True):
+
+def join_assets(assets, file_names, intervals, is_features=True, cols=[]):
     merged = pd.DataFrame()
     for a, f in zip(assets, file_names):
         print(a)
@@ -92,6 +95,8 @@ def join_assets(assets, file_names, intervals, is_features=True):
         else:
             df = pd.read_csv('klines/' + intervals + '/' + f)
         df = drop_unimportants(df)
+        if len(cols) > 0:
+            df = df[cols]
         df.columns = [a + '_' + str(col) if str(col) != 'timestamp' else str(col) for col in df.columns]
 
         if merged.shape == (0, 0):
@@ -99,7 +104,7 @@ def join_assets(assets, file_names, intervals, is_features=True):
         else:
             merged = merged.merge(df,
                                   left_on='timestamp',
-                                  right_on='timestamp',)
+                                  right_on='timestamp', )
     if is_features:
         merged = merged[DropCorrelated(merged, 0.95)]
     return merged
@@ -125,6 +130,7 @@ def prepare_data(features, CUTOFF, s2pred, merging, is_features=True):
     print('x8')
     return X_train, X_valid, y_train, y_valid, df_train_y, df_valid, df_valid_y
 
+
 def DropCorrelated(data, corr_threshold):
     corr_mat = data.corr(method='pearson')
     corr_mat.loc[:, :] = np.tril(corr_mat, k=-1)
@@ -140,17 +146,16 @@ def DropCorrelated(data, corr_threshold):
         # select_flat = [i for j in select_nested for i in j]
     return result
 
+
 def to_categorical(arr):
     uniques = np.unique(arr)
     n_values = uniques.shape[0]
     one_hot = np.eye(n_values)[arr.reshape(-1)]
     oh_dict_array = np.eye(n_values)[uniques]
     oh_dict = dict()
-    for i in range(0,n_values):
-        oh_dict[uniques[i]] = oh_dict_array[i,:]
+    for i in range(0, n_values):
+        oh_dict[uniques[i]] = oh_dict_array[i, :]
     return one_hot, oh_dict
-
-
 
 
 client_intervals = {

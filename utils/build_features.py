@@ -160,7 +160,14 @@ def getDuplicateColumns(df):
     return list(duplicateColumnNames)
 
 
+def Bolinger_Bands(close, window_size=420/5, num_of_std=2):
 
+    rolling_mean = close.rolling(window=window_size).mean()
+    rolling_std = close.rolling(window=window_size).std()
+    upper_band = rolling_mean + (rolling_std*num_of_std)
+    lower_band = rolling_mean - (rolling_std*num_of_std)
+
+    return rolling_mean, upper_band, lower_band, rolling_std
 
 
 def build_features(data, merging):
@@ -173,6 +180,9 @@ def build_features(data, merging):
     data['is_agol_changed'] = cal_agol(data['close'].tolist(), data['open'].tolist())
     # data['cheat'] = cheat(data)
     data['close_expoSmooth'] = exponential_smoothing(data, 0.8)
+
+    # data['bb_rollimg_mean'], data['bb_upper_band'], data['bb_lower_band'], data['bb_rolling_std'] = \
+    #     Bolinger_Bands(data['close'])
 
     length = MAX_WINDOW + 1
     momentous = ([n for n in range(0, length) if bin(n).count('1') == 1])
@@ -228,5 +238,9 @@ def build_features(data, merging):
     data = data.drop(columns=getDuplicateColumns(data))
     return data
 
+
+def add_feature(new_feature, klines):
+    close = klines['close']
+    return new_feature(close)
 
 # TODO: Holt-Winters?
