@@ -112,23 +112,25 @@ def join_assets(assets, file_names, intervals, is_features=True, cols=[]):
 
 def prepare_data(features, CUTOFF, s2pred, merging, is_features=True):
     features_y = add_ys(features, CUTOFF, s2pred, merging, is_features)
-    print('x1')
+    # print('x1')
     l = features.shape[0]
-    print('x2')
+    # print('x2')
     X_train = np.array(features.iloc[:int(0.9 * l)].drop('timestamp', axis=1))
-    print('x3')
+    # print('x3')
     X_valid = np.array(features.iloc[int(0.9 * l):].drop('timestamp', axis=1))
-    print('x4')
+    # print('x4')
     y_train = np.array(features_y['y_bins'].iloc[:int(0.9 * l)])
-    print('x5')
+    # print('x5')
     y_valid = np.array(features_y['y_bins'].iloc[int(0.9 * l):])
-    print('x6')
+    # print('x6')
+    df_train = features.iloc[:int(0.9 * l)]
     df_valid = features.iloc[int(0.9 * l):]
-    print('x7')
+    # print('x7')
     df_valid_y = features_y.iloc[int(0.9 * l):]
     df_train_y = features_y.iloc[:int(0.9 * l)]
-    print('x8')
-    return X_train, X_valid, y_train, y_valid, df_train_y, df_valid, df_valid_y
+    # print('x8')
+    print('Data prepared')
+    return X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y
 
 
 def DropCorrelated(data, corr_threshold):

@@ -234,7 +234,7 @@ def build_features(data, merging):
             if inf_res or none_res:
                 numpy_col = np.nan_to_num(numpy_col)
             data[col] = numpy_col
-    data = data.drop(columns=['close', 'open', 'high', 'low'])
+    data = data.drop(columns=['open', 'high', 'low'])
     data = data.drop(columns=getDuplicateColumns(data))
     return data
 
