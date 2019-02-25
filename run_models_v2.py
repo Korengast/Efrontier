@@ -12,21 +12,20 @@ import numpy as np
 from datetime import datetime
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
-# N_ESTIMATORS = [50, 100, 300]
 N_ESTIMATORS = [10, 50, 100]
-EPOCHS = 10
+# EPOCHS = 10
 MOUNTH_DATA_ROWS = int(30 * 24 * (60 / 5))
 s_date = '31 Jan, 2017'
 # s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 # e_date = '02 Jan, 2019'
-symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-# symbols = ['NEOUSDT']
+SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+# SYMBOLS_TO_USE = ['NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
-# symbols_to_predict = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-symbols_to_predict = ['NEOUSDT']
+# SYMBOLS_TO_PREDICT = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+SYMBOLS_TO_PREDICT = ['NEOUSDT']
 merging = 6  # Should be equal to data_interval/pull_interval
 models = dict()
 
@@ -48,7 +47,7 @@ for n_est in N_ESTIMATORS:
 
 
 kl_file_names = []
-for symbol in symbols:
+for symbol in SYMBOLS_TO_USE:
     print(symbol)
     kl_f_name = symbol + '_' + s_date + '_TO_' + e_date + '.csv'
     kl_file_names.append(kl_f_name)
@@ -66,11 +65,11 @@ base_cols = base_cols + ['BTCUSDT_volume', 'BNBUSDT_close_ratio',
 
 print('a')
 # features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
-features = join_assets(symbols, features_file_names, data_intervals, is_features=True)
+features = join_assets(SYMBOLS_TO_USE, features_file_names, data_intervals, is_features=True)
 features = features[base_cols]
 features = features.dropna()
 # features = []
-jklines = join_assets(symbols, kl_file_names, data_intervals, is_features=False)
+jklines = join_assets(SYMBOLS_TO_USE, kl_file_names, data_intervals, is_features=False)
 
 # models['LSTMc_' + str(EPOCHS)] = LSTM_classifier(jklines.shape[1] - 1, 7)
 # models['LSTMr_' + str(EPOCHS)] = LSTM_regressor(jklines.shape[1] - 1, 7)
@@ -81,7 +80,7 @@ TOTAL_DATA_ROWS = jklines.shape[0]
 cross_data_endpoints = list(range(6 * MOUNTH_DATA_ROWS, TOTAL_DATA_ROWS, MOUNTH_DATA_ROWS))
 # cross_data_endpoints = [TOTAL_DATA_ROWS]
 
-for s2pred in symbols_to_predict:
+for s2pred in SYMBOLS_TO_PREDICT:
     for model_name in models.keys():
         is_keras = 'LSTM' in model_name or 'conv1D' in model_name
         result = {
