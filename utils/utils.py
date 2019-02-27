@@ -47,8 +47,8 @@ def merge_klines(klines, merge_amount):
     return merged_klines
 
 
-def add_ys(df, cutoff, symbol, merging, is_features):
-    new_df = copy.deepcopy(df)
+def add_ys(new_df, cutoff, symbol, merging, is_features):
+    # new_df = copy.deepcopy(df)
     if not is_features:
         new_df[symbol + '_close_ratio'] = new_df[symbol + '_close'] / new_df[symbol + '_close'].shift(1)
     new_df['y'] = new_df[symbol + '_close_ratio'].shift(-1 * merging)

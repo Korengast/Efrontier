@@ -10,7 +10,7 @@ from models.adaBoost import AdaBoost
 from models.features_selector import Selector
 import pandas as pd
 import numpy as np
-from datetime import datetime
+import datetime as dt
 import copy
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
@@ -21,8 +21,8 @@ s_date = '31 Jan, 2017'
 # s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 # e_date = '02 Jan, 2019'
-SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-# SYMBOLS_TO_USE = ['NEOUSDT']
+# SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+SYMBOLS_TO_USE = ['NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
@@ -79,8 +79,9 @@ jklines = join_assets(SYMBOLS_TO_USE, kl_file_names, data_intervals, is_features
 # models['conv1D'] = conv1D_model(jklines.shape[1] - 1, 10, 7)
 
 TOTAL_DATA_ROWS = jklines.shape[0]
-cross_data_endpoints = list(range(6 * MOUNTH_DATA_ROWS, TOTAL_DATA_ROWS, MOUNTH_DATA_ROWS))
-# cross_data_endpoints = [TOTAL_DATA_ROWS]
+# cross_data_endpoints = list(range(6 * MOUNTH_DATA_ROWS, TOTAL_DATA_ROWS, MOUNTH_DATA_ROWS))
+cross_data_endpoints = [TOTAL_DATA_ROWS]
+y_cols = ['y', 'y_R^2', 'y%', 'y*r2', 'y_bins']
 
 for s2pred in SYMBOLS_TO_PREDICT:
     for model_name in models.keys():
@@ -105,15 +106,14 @@ for s2pred in SYMBOLS_TO_PREDICT:
                 cross_data = jklines.iloc[:ep]
                 is_features = False
 
-            features_y = add_ys(features, CUTOFF, s2pred, merging, is_features)
-            df_train = features.iloc[:-2 * MOUNTH_DATA_ROWS]
-            df_valid = features.iloc[-2 * MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS]
-            df_test = features.iloc[-MOUNTH_DATA_ROWS:]
-            df_train_y = features_y.iloc[:-2 * MOUNTH_DATA_ROWS]
-            df_valid_y = features_y.iloc[-2 * MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS]
-            df_test_y = features_y.iloc[-MOUNTH_DATA_ROWS:]
-            # TODO: 1. More eficient dataframes (no need features and features_y)
-            # TODO: 2. Use Selector properly
+            cross_data = add_ys(cross_data, CUTOFF, s2pred, merging, is_features)
+            # df_train = features.iloc[:-2 * MOUNTH_DATA_ROWS]
+            # df_valid = features.iloc[-2 * MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS]
+            # df_test = features.iloc[-MOUNTH_DATA_ROWS:]
+
+            df_train_y = cross_data.iloc[:-MOUNTH_DATA_ROWS]
+            df_valid_y = cross_data.iloc[-int(1.5 * MOUNTH_DATA_ROWS):-MOUNTH_DATA_ROWS]
+            df_test_y = cross_data.iloc[-MOUNTH_DATA_ROWS:]
 
             # l = cross_data.shape[0]
             # df_to_selector = cross_data.iloc[int((0.9*l)-(MOUNTH_DATA_ROWS / 2)):int(0.9*l)]
@@ -122,55 +122,44 @@ for s2pred in SYMBOLS_TO_PREDICT:
                 n_est = int(model_name.replace('AdaBoost_', ''))
             if 'RandomForest' in model_name:
                 n_est = int(model_name.replace('RandomForest_', ''))
-            feature_selector = Selector(model, df_to_selector, CUTOFF, s2pred, merging, n_est, class_weight)
+
+            feature_selector = Selector(model_name, df_valid_y, CUTOFF, s2pred, merging, n_est, class_weight)
             # l = ['soft_upper_dist', 'soft_lower_dist', 'soft_upper_broke', 'soft_lower_broke']
             # l = ['NEOUSDT_' + i for i in l]
             feature_selector.execute()
-            cross_data = cross_data[feature_selector.get_cols()]
+            df_train_y = df_train_y[feature_selector.get_cols() + y_cols]
+            df_valid_y = df_valid_y[feature_selector.get_cols() + y_cols]
+            df_test_y = df_test_y[feature_selector.get_cols() + y_cols]
+            X_train = np.array(df_train_y.drop(['timestamp'] + y_cols, axis=1))
+            X_test = np.array(df_test_y.drop(['timestamp'] + y_cols, axis=1))
 
-            X_train, X_valid, X_test, \
-            y_train, y_valid, y_test, \
-            df_train, df_valid, df_test, \
-            df_train_y, df_valid_y, df_test_y = \
-                prepare_data(cross_data, CUTOFF, s2pred, merging, is_features=is_features)
+            y_train = np.array(df_train_y['y_bins'])
+            y_test = np.array(df_test_y['y_bins'])
 
             print('d')
             if not is_keras:
                 model.fit(X=X_train, y=y_train)
             else:
-                # model.fit(X=X_train, y=y_train, epochs=EPOCHS)
                 model.fit(X=X_train, y=np.array(df_train_y['y']), epochs=EPOCHS)
-            df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
-            df_train_y['predictions'] = model.predict(df_train.drop('timestamp', axis=1))
+            df_valid_y['predictions'] = model.predict(df_valid_y.drop(['timestamp'] + y_cols, axis=1))
+            df_test_y['predictions'] = model.predict(df_test_y.drop(['timestamp'] + y_cols, axis=1))
             if not is_keras:
                 f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
                 df_valid_y.loc['feature_importance'] = f_imp
 
-            df_to_zero = df_valid_y[df_valid_y['predictions'] > 0.05]
+            df_to_zero = df_valid_y[df_valid_y['predictions'] > 0.0]
             measure = np.mean(df_to_zero['y'])
 
             pathlib.Path('predictions/' + data_intervals).mkdir(exist_ok=True)
             pred_file_name = model_name + '_' + s2pred
             l = cross_data.shape[0]
 
-            # result['train_s_date'][0].append(datetime.utcfromtimestamp(cross_data.iloc[0]['timestamp'] / 1000))
-            # result['valid_s_date'][0].append(datetime.utcfromtimestamp(cross_data.iloc[int(0.9 * l)]['timestamp'] / 1000))
-            # result['valid_e_date'][0].append(datetime.utcfromtimestamp(cross_data.iloc[l - 1]['timestamp'] / 1000))
-            # result['measure'][0].append(measure)
-            # result['avg_y%'][0].append(np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y%']))
-            # result['value_to_buy'][0].append(avg_inc_pred)
-
-            dates = str(cross_data.iloc[int(0.9 * l)]['timestamp']) + '_' + str(cross_data.iloc[l-1]['timestamp'])
+            dates = dt.date.fromtimestamp(df_test_y['timestamp'].iloc[0]/1000).__str__() + '_' + \
+                    dt.date.fromtimestamp(df_test_y['timestamp'].iloc[-1] / 1000).__str__()
+            # dates = str(cross_data.iloc[int(0.9 * l)]['timestamp']) + '_' + str(cross_data.iloc[l - 1]['timestamp'])
             pathlib.Path('predictions/' + data_intervals + '/qualitative/' + model_name).mkdir(exist_ok=True)
-            # df_valid_y.to_csv('try.csv')
-            df_valid_y.to_csv('predictions/5M_30M/qualitative/' + model_name + '/' + pred_file_name +
-                              '_' + str(measure) + '_' + dates + '.csv', index=False)
             df_train_y.to_csv('predictions/5M_30M/qualitative/' + model_name + '/' + pred_file_name +
                               '_' + str(measure) + '_' + dates + '_TRAIN.csv', index=False)
-        # result = pd.DataFrame(result)
-        # result['total_measure'] = np.mean(result.iloc[0]['measure'])
-        # result['total_y%'] = np.mean(result.iloc[0]['avg_y%'][0])
-        # result.to_csv('results.csv', mode='a', header=False, index=False)
-
-
+            df_test_y.to_csv('predictions/5M_30M/qualitative/' + model_name + '/' + pred_file_name +
+                             '_' + str(measure) + '_' + dates + '.csv', index=False)
 print('Done')

@@ -5,13 +5,15 @@ from joblib import Parallel, delayed
 from models.random_forest import RandomForest
 from models.adaBoost import AdaBoost
 from models.MLP import MLP
+import copy
 
 
 class Selector(object):
-    def __init__(self, model, features_df, CUTOFF, s2pred, merging, n_est, class_weights):
+    def __init__(self, model_name, features_df, CUTOFF, s2pred, merging, n_est, class_weights):
         self.s2pred = s2pred
         self.n_est = n_est
         self.class_weights = class_weights
+        self.model_name = model_name
 
         self.features_df = features_df
         self.base_cols = ['timestamp', self.s2pred + '_close_ratio', self.s2pred + '_R^2']
@@ -28,20 +30,24 @@ class Selector(object):
         total_cols = self.base_cols + self.added_cols
         if c not in total_cols:
             cols = total_cols + [c]
-            x_df = self.features_df[cols]
-            x_df = x_df.dropna()
-            X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y = \
-                prepare_data(x_df, self.cutoff, self.s2pred, self.merging, is_features=True)
-            # model = AdaBoost(self.n_est, self.class_weights)
-            model = RandomForest(self.n_est, self.class_weights)
+            x_df = copy.deepcopy(self.features_df)
+            x_df = x_df[cols].dropna()
+            print(x_df.columns)
+            l = x_df.shape[0]
+            X_train = np.array(x_df.iloc[:int(l*0.75)].drop(['timestamp'], axis=1))
+            y_train = np.array(self.features_df['y_bins'].iloc[:int(l*0.75)])
+
+            # X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y = \
+            #     prepare_data(x_df, self.cutoff, self.s2pred, self.merging, is_features=True)
+            model = None
+            if 'AdaBoost' in self.model_name:
+                model = AdaBoost(self.n_est, self.class_weights)
+            if 'RandomForest' in self.model_name:
+                model = RandomForest(self.n_est, self.class_weights)
             # model = MLP()
             model.fit(X=X_train, y=y_train)
-            df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
-            return (df_valid_y, c)
-            # print(df_valid_y.shape)
-            # self.temp_results[c] = df_valid_y
-            # print(self.temp_results.keys())
-            # df_valid_y.to_csv('predictions/5M_30M/feature_selection/' + c + '.csv', index=False)
+            self.features_df['predictions'] = model.predict(x_df.drop('timestamp', axis=1))
+            return self.features_df, c
 
     def features_adding(self, t):
         df = t[0]
@@ -49,29 +55,22 @@ class Selector(object):
         print(df.shape)
         df = df.dropna()
         df = df.sort_values('predictions', ascending=False)
-
-        # def comul(y):
-        #     c = [1]
-        #     for i in y:
-        #         c.append(c[-1] * i)
-        #     return c[1:]
-        #
-        # df['comulative'] = comul(df['y'])
-        # df_to_zero = df[df['predictions'] > 0.05]
         df_to_zero = df[df['predictions'] > 0.0]
         print('{}: {}'.format(c, np.mean(df_to_zero['y'])))
         d = {'feature': c, 'measure': np.mean(df_to_zero['y'])}
         return d
-        # if np.mean(df_to_zero['comulative']) > self.best_measure:
-        #     self.best_measure = np.mean(df_to_zero['comulative'])
-        #     best_feature = c
 
     def execute(self, given_list=None, select=True):
         if select:
             keep_picking = True
             while (keep_picking):
                 if given_list is None:
-                    cols_to_choose = self.features_df.columns
+                    cols_to_choose = list(self.features_df.columns)
+                    cols_to_choose.remove('y')
+                    cols_to_choose.remove('y_R^2')
+                    cols_to_choose.remove('y%')
+                    cols_to_choose.remove('y*r2')
+                    cols_to_choose.remove('y_bins')
                 else:
                     cols_to_choose = given_list
                 self.temp_results = Parallel(n_jobs=3)(
