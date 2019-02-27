@@ -21,8 +21,8 @@ s_date = '31 Jan, 2017'
 # s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 # e_date = '02 Jan, 2019'
-# SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-SYMBOLS_TO_USE = ['NEOUSDT']
+SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+# SYMBOLS_TO_USE = ['NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
@@ -128,16 +128,10 @@ for s2pred in SYMBOLS_TO_PREDICT:
                 # model.fit(X=X_train, y=y_train, epochs=EPOCHS)
                 model.fit(X=X_train, y=np.array(df_train_y['y']), epochs=EPOCHS)
             df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
+            df_train_y['predictions'] = model.predict(df_train.drop('timestamp', axis=1))
             if not is_keras:
                 f_imp = [None] + list(model.get_feture_importances(X_train.shape[1])) + [None] * 6
                 df_valid_y.loc['feature_importance'] = f_imp
-
-            # avg_inc_pred = np.mean(df_valid_y[df_valid_y['y_bins'] > 0]['predictions'])
-            # measure = np.mean(df_valid_y[df_valid_y['predictions'] > avg_inc_pred]['y_bins']) - np.mean(
-            #     df_valid_y['y_bins'])
-            # measure = measure / np.mean(df_valid_y['y_bins'])
-            # measure = round(float(measure) * 100, 2)
-
 
             df_to_zero = df_valid_y[df_valid_y['predictions'] > 0.05]
             measure = np.mean(df_to_zero['y'])
@@ -158,6 +152,8 @@ for s2pred in SYMBOLS_TO_PREDICT:
             # df_valid_y.to_csv('try.csv')
             df_valid_y.to_csv('predictions/5M_30M/qualitative/' + model_name + '/' + pred_file_name +
                               '_' + str(measure) + '_' + dates + '.csv', index=False)
+            df_train_y.to_csv('predictions/5M_30M/qualitative/' + model_name + '/' + pred_file_name +
+                              '_' + str(measure) + '_' + dates + '_TRAIN.csv', index=False)
         # result = pd.DataFrame(result)
         # result['total_measure'] = np.mean(result.iloc[0]['measure'])
         # result['total_y%'] = np.mean(result.iloc[0]['avg_y%'][0])

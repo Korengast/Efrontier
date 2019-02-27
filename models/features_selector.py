@@ -4,6 +4,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from models.random_forest import RandomForest
 from models.adaBoost import AdaBoost
+from models.MLP import MLP
 
 
 class Selector(object):
@@ -26,13 +27,14 @@ class Selector(object):
     def features_testing(self, c):
         total_cols = self.base_cols + self.added_cols
         if c not in total_cols:
-            # print(c)
             cols = total_cols + [c]
             x_df = self.features_df[cols]
             x_df = x_df.dropna()
             X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y = \
                 prepare_data(x_df, self.cutoff, self.s2pred, self.merging, is_features=True)
-            model = AdaBoost(self.n_est, self.class_weights)
+            # model = AdaBoost(self.n_est, self.class_weights)
+            model = RandomForest(self.n_est, self.class_weights)
+            # model = MLP()
             model.fit(X=X_train, y=y_train)
             df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
             return (df_valid_y, c)
@@ -55,7 +57,8 @@ class Selector(object):
         #     return c[1:]
         #
         # df['comulative'] = comul(df['y'])
-        df_to_zero = df[df['predictions'] > 0.05]
+        # df_to_zero = df[df['predictions'] > 0.05]
+        df_to_zero = df[df['predictions'] > 0.0]
         print('{}: {}'.format(c, np.mean(df_to_zero['y'])))
         d = {'feature': c, 'measure': np.mean(df_to_zero['y'])}
         return d

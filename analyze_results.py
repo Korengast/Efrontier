@@ -3,10 +3,12 @@ import glob
 import pandas as pd
 import numpy as np
 
-THRESHOLDS = np.linspace(0.0, 0.2, 201)
+THRESHOLDS = np.linspace(-0.003, 0.006, 2001)
 # THRESHOLDS = [0.149]
-path = 'predictions\\5M_30M\\qualitative\\RandomForest_100'
+path = 'predictions\\5M_30M\\qualitative\\MLP'
 allFiles = glob.glob(path + "/*.csv")
+train_files = [f for f in allFiles if '_TRAIN' in f]
+valid_files = [f for f in allFiles if '_TRAIN' not in f]
 
 cols = ['y', 'y%', 'y_bins', 'predictions']
 
@@ -26,9 +28,13 @@ cols = ['y', 'y%', 'y_bins', 'predictions']
 #     return val
 
 
-for fn in allFiles:
-    res_df = pd.read_csv(fn, usecols=cols)
-    res_df = res_df.iloc[:-7]
+for tf in train_files:
+    train_df = pd.read_csv(tf, usecols=cols)
+    for vf in valid_files:
+        if vf in tf:
+            valid_df = pd.read_csv(vf, usecols=cols)
+    # res_df = pd.read_csv(fn, usecols=cols)
+    res_df = valid_df.iloc[:-7]
     longs = []
     transactions = []
     tuner_df = res_df[:int(res_df.shape[0] * 0.25)]
@@ -43,7 +49,17 @@ for fn in allFiles:
     best_th = THRESHOLDS[best_ind]
     avg_long = np.mean(res_df[res_df['predictions'] > best_th]['y'])
     n_trans = res_df[res_df['predictions'] > best_th].shape[0]
-    print('long: {}%, transactions: {}'.format(np.round((avg_long -1)*100, 4), n_trans))
+
+    train_long = np.mean(train_df[train_df['predictions'] > best_th]['y'])
+    train_trans = train_df[train_df['predictions'] > best_th].shape[0]
+
+    print('train long: {}%,'
+          'validation long: {}%,'
+          'train transactions: {},'
+          'validation transactions: {}'.format(np.round((train_long -1)*100, 4),
+                                               np.round((avg_long - 1) * 100, 4),
+                                               train_trans,
+                                               n_trans))
 
 """
 
