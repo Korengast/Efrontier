@@ -63,12 +63,16 @@ class Selector(object):
         #     self.best_measure = np.mean(df_to_zero['comulative'])
         #     best_feature = c
 
-    def execute(self, given_list = None):
-        if given_list is None:
+    def execute(self, given_list=None, select=True):
+        if select:
             keep_picking = True
             while (keep_picking):
+                if given_list is None:
+                    cols_to_choose = self.features_df.columns
+                else:
+                    cols_to_choose = given_list
                 self.temp_results = Parallel(n_jobs=3)(
-                    delayed(self.features_testing)(e) for e in self.features_df.columns)
+                    delayed(self.features_testing)(e) for e in cols_to_choose)
                 self.temp_results = [tr for tr in self.temp_results if tr is not None]
                 features_scores = Parallel(n_jobs=3)(delayed(self.features_adding)(e) for e in self.temp_results)
                 temp_best_measure = -np.inf
@@ -78,7 +82,7 @@ class Selector(object):
                         temp_best_measure = fs['measure']
                         temp_feature_to_add = fs['feature']
                 print('Temp best measure: {}'.format(temp_best_measure))
-                if temp_best_measure > self.best_measure:
+                if temp_best_measure >= self.best_measure:
                     self.best_measure = temp_best_measure
                     self.added_cols = self.added_cols + [temp_feature_to_add]
                     print('{} added'.format(temp_feature_to_add))

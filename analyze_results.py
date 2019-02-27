@@ -34,7 +34,6 @@ for fn in allFiles:
     tuner_df = res_df[:int(res_df.shape[0] * 0.25)]
     for th in THRESHOLDS:
         long_prof = np.mean(tuner_df[tuner_df['predictions'] > th]['y']) - 0.00075
-        # print(long_prof)
         longs.append(long_prof)
         trans = tuner_df[tuner_df['predictions'] > th].shape[0]
         transactions.append(trans)

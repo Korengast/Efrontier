@@ -21,8 +21,8 @@ s_date = '31 Jan, 2017'
 # s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 # e_date = '02 Jan, 2019'
-SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-# SYMBOLS_TO_USE = ['NEOUSDT']
+# SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+SYMBOLS_TO_USE = ['NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
@@ -43,8 +43,8 @@ class_weight = {
 
 for n_est in N_ESTIMATORS:
     # pass
-    # models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
-    models['AdaBoost_' + str(n_est)] = AdaBoost(n_est, class_weight)
+    models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
+    # models['AdaBoost_' + str(n_est)] = AdaBoost(n_est, class_weight)
 # models['MLP'] = MLP()
 
 
@@ -113,6 +113,8 @@ for s2pred in SYMBOLS_TO_PREDICT:
             if 'RandomForest' in model_name:
                 n_est = int(model_name.replace('RandomForest_', ''))
             feature_selector = Selector(model, df_to_selector, CUTOFF, s2pred, merging, n_est, class_weight)
+            # l = ['soft_upper_dist', 'soft_lower_dist', 'soft_upper_broke', 'soft_lower_broke']
+            # l = ['NEOUSDT_' + i for i in l]
             feature_selector.execute()
             cross_data = cross_data[feature_selector.get_cols()]
 
