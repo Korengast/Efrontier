@@ -3,6 +3,7 @@ from utils.utils import prepare_data
 import numpy as np
 from joblib import Parallel, delayed
 from models.random_forest import RandomForest
+from models.adaBoost import AdaBoost
 
 
 class Selector(object):
@@ -31,7 +32,7 @@ class Selector(object):
             x_df = x_df.dropna()
             X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y = \
                 prepare_data(x_df, self.cutoff, self.s2pred, self.merging, is_features=True)
-            model = RandomForest(self.n_est, self.class_weights)
+            model = AdaBoost(self.n_est, self.class_weights)
             model.fit(X=X_train, y=y_train)
             df_valid_y['predictions'] = model.predict(df_valid.drop('timestamp', axis=1))
             return (df_valid_y, c)
@@ -62,25 +63,29 @@ class Selector(object):
         #     self.best_measure = np.mean(df_to_zero['comulative'])
         #     best_feature = c
 
-    def execute(self):
-        keep_picking = True
-        while (keep_picking):
-            self.temp_results = Parallel(n_jobs=3)(delayed(self.features_testing)(e) for e in self.features_df.columns)
-            self.temp_results = [tr for tr in self.temp_results if tr is not None]
-            features_scores = Parallel(n_jobs=3)(delayed(self.features_adding)(e) for e in self.temp_results)
-            temp_best_measure = -np.inf
-            temp_feature_to_add = ''
-            for fs in features_scores:
-                if fs['measure'] > temp_best_measure:
-                    temp_best_measure = fs['measure']
-                    temp_feature_to_add = fs['feature']
-            print('Temp best measure: {}'.format(temp_best_measure))
-            if temp_best_measure > self.best_measure:
-                self.best_measure = temp_best_measure
-                self.added_cols = self.added_cols + [temp_feature_to_add]
-                print('{} added'.format(temp_feature_to_add))
-            else:
-                keep_picking = False
+    def execute(self, given_list = None):
+        if given_list is None:
+            keep_picking = True
+            while (keep_picking):
+                self.temp_results = Parallel(n_jobs=3)(
+                    delayed(self.features_testing)(e) for e in self.features_df.columns)
+                self.temp_results = [tr for tr in self.temp_results if tr is not None]
+                features_scores = Parallel(n_jobs=3)(delayed(self.features_adding)(e) for e in self.temp_results)
+                temp_best_measure = -np.inf
+                temp_feature_to_add = ''
+                for fs in features_scores:
+                    if fs['measure'] > temp_best_measure:
+                        temp_best_measure = fs['measure']
+                        temp_feature_to_add = fs['feature']
+                print('Temp best measure: {}'.format(temp_best_measure))
+                if temp_best_measure > self.best_measure:
+                    self.best_measure = temp_best_measure
+                    self.added_cols = self.added_cols + [temp_feature_to_add]
+                    print('{} added'.format(temp_feature_to_add))
+                else:
+                    keep_picking = False
+        else:
+            self.added_cols = given_list
 
     def get_cols(self):
         return self.base_cols + self.added_cols

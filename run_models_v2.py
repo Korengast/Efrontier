@@ -43,8 +43,8 @@ class_weight = {
 
 for n_est in N_ESTIMATORS:
     # pass
-    models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
-    # models['AdaBoost_' + str(n_est)] = AdaBoost(n_est, class_weight)
+    # models['RandomForest_' + str(n_est)] = RandomForest(n_est, class_weight)
+    models['AdaBoost_' + str(n_est)] = AdaBoost(n_est, class_weight)
 # models['MLP'] = MLP()
 
 
@@ -107,7 +107,11 @@ for s2pred in SYMBOLS_TO_PREDICT:
 
             l = cross_data.shape[0]
             df_to_selector = cross_data.iloc[int((0.9*l)-(MOUNTH_DATA_ROWS / 2)):int(0.9*l)]
-            n_est = int(model_name.replace('RandomForest_', ''))
+            n_est = 0
+            if 'AdaBoost' in model_name:
+                n_est = int(model_name.replace('AdaBoost_', ''))
+            if 'RandomForest' in model_name:
+                n_est = int(model_name.replace('RandomForest_', ''))
             feature_selector = Selector(model, df_to_selector, CUTOFF, s2pred, merging, n_est, class_weight)
             feature_selector.execute()
             cross_data = cross_data[feature_selector.get_cols()]
