@@ -1,6 +1,6 @@
 __author__ = "Koren Gast"
 
-from utils.utils import join_assets, prepare_data
+from utils.utils import join_assets, prepare_data, add_ys
 import pathlib
 from models.random_forest import RandomForest
 from models.MLP import MLP
@@ -105,8 +105,18 @@ for s2pred in SYMBOLS_TO_PREDICT:
                 cross_data = jklines.iloc[:ep]
                 is_features = False
 
-            l = cross_data.shape[0]
-            df_to_selector = cross_data.iloc[int((0.9*l)-(MOUNTH_DATA_ROWS / 2)):int(0.9*l)]
+            features_y = add_ys(features, CUTOFF, s2pred, merging, is_features)
+            df_train = features.iloc[:-2 * MOUNTH_DATA_ROWS]
+            df_valid = features.iloc[-2 * MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS]
+            df_test = features.iloc[-MOUNTH_DATA_ROWS:]
+            df_train_y = features_y.iloc[:-2 * MOUNTH_DATA_ROWS]
+            df_valid_y = features_y.iloc[-2 * MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS]
+            df_test_y = features_y.iloc[-MOUNTH_DATA_ROWS:]
+            # TODO: 1. More eficient dataframes (no need features and features_y)
+            # TODO: 2. Use Selector properly
+
+            # l = cross_data.shape[0]
+            # df_to_selector = cross_data.iloc[int((0.9*l)-(MOUNTH_DATA_ROWS / 2)):int(0.9*l)]
             n_est = 0
             if 'AdaBoost' in model_name:
                 n_est = int(model_name.replace('AdaBoost_', ''))
@@ -118,7 +128,10 @@ for s2pred in SYMBOLS_TO_PREDICT:
             feature_selector.execute()
             cross_data = cross_data[feature_selector.get_cols()]
 
-            X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y = \
+            X_train, X_valid, X_test, \
+            y_train, y_valid, y_test, \
+            df_train, df_valid, df_test, \
+            df_train_y, df_valid_y, df_test_y = \
                 prepare_data(cross_data, CUTOFF, s2pred, merging, is_features=is_features)
 
             print('d')

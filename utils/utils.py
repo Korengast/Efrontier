@@ -5,7 +5,7 @@ import copy
 import numpy as np
 from utils.api_keys import api_private, api_public
 from scipy.stats import linregress
-
+MOUNTH_DATA_ROWS = int(30 * 24 * (60 / 5))
 
 def get_klines(s_date, e_date, symbol, interval):
     client = Client(api_public, api_private)
@@ -112,25 +112,31 @@ def join_assets(assets, file_names, intervals, is_features=True, cols=[]):
 
 def prepare_data(features, CUTOFF, s2pred, merging, is_features=True):
     features_y = add_ys(features, CUTOFF, s2pred, merging, is_features)
-    # print('x1')
     l = features.shape[0]
-    # print('x2')
-    X_train = np.array(features.iloc[:int(0.9 * l)].drop('timestamp', axis=1))
-    # print('x3')
-    X_valid = np.array(features.iloc[int(0.9 * l):].drop('timestamp', axis=1))
-    # print('x4')
-    y_train = np.array(features_y['y_bins'].iloc[:int(0.9 * l)])
-    # print('x5')
-    y_valid = np.array(features_y['y_bins'].iloc[int(0.9 * l):])
-    # print('x6')
-    df_train = features.iloc[:int(0.9 * l)]
-    df_valid = features.iloc[int(0.9 * l):]
-    # print('x7')
-    df_valid_y = features_y.iloc[int(0.9 * l):]
-    df_train_y = features_y.iloc[:int(0.9 * l)]
-    # print('x8')
-    print('Data prepared')
-    return X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y
+
+    X_train = np.array(features.iloc[:-2*MOUNTH_DATA_ROWS].drop('timestamp', axis=1))
+    X_valid = np.array(features.iloc[-2*MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS].drop('timestamp', axis=1))
+    X_test = np.array(features.iloc[-MOUNTH_DATA_ROWS:].drop('timestamp', axis=1))
+
+    y_train = np.array(features_y['y_bins'].iloc[:-2*MOUNTH_DATA_ROWS])
+    y_valid = np.array(features_y['y_bins'].iloc[-2*MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS])
+    y_test = np.array(features_y['y_bins'].iloc[-MOUNTH_DATA_ROWS:])
+
+    df_train = features.iloc[:-2*MOUNTH_DATA_ROWS]
+    df_valid = features.iloc[-2*MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS]
+    df_test = features.iloc[-MOUNTH_DATA_ROWS:]
+
+    df_train_y = features_y.iloc[:-2*MOUNTH_DATA_ROWS]
+    df_valid_y = features_y.iloc[-2*MOUNTH_DATA_ROWS:-MOUNTH_DATA_ROWS]
+    df_test_y = features_y.iloc[-MOUNTH_DATA_ROWS:]
+
+    print('Train set size: {}, Validation set size: {}, Test set size: {}'.format(df_train.shape[0],
+                                                                                  df_valid.shape[0],
+                                                                                  df_test.shape[0]))
+    return X_train, X_valid, X_test,\
+           y_train, y_valid, y_test,\
+           df_train, df_valid, df_test,\
+           df_train_y, df_valid_y, df_test_y
 
 
 def DropCorrelated(data, corr_threshold):
