@@ -61,7 +61,7 @@ class Selector(object):
         d = {'feature': c, 'measure': np.mean(df_to_zero['y'])}
         return d
 
-    def best_ten(self):
+    def best_k(self, k):
         y_cols = ['y', 'y_R^2', 'y%', 'y*r2', 'y_bins']
         model = None
         df = self.features_df.drop(['timestamp'] + y_cols + self.base_cols, axis=1)
@@ -75,7 +75,7 @@ class Selector(object):
         f = df.columns
         imp = model.get_feture_importances()
         cols_to_choose = pd.DataFrame({'features': f, 'importance': imp}).sort_values('importance', ascending=False)[
-                             'features'].iloc[:3]
+                             'features'].iloc[:k]
         return cols_to_choose
 
     def execute(self, given_list=None, select=True):
@@ -89,7 +89,7 @@ class Selector(object):
                     # cols_to_choose.remove('y%')
                     # cols_to_choose.remove('y*r2')
                     # cols_to_choose.remove('y_bins')
-                    cols_to_choose = self.best_ten()
+                    cols_to_choose = self.best_k(k=10)
 
                 else:
                     cols_to_choose = given_list
