@@ -14,7 +14,7 @@ import datetime as dt
 import copy
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
-N_ESTIMATORS = [100]
+N_ESTIMATORS = [1]
 EPOCHS = 10
 MOUNTH_DATA_ROWS = int(30 * 24 * (60 / 5))
 s_date = '31 Jan, 2017'

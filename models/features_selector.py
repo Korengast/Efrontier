@@ -5,8 +5,9 @@ from joblib import Parallel, delayed
 from models.random_forest import RandomForest
 from models.adaBoost import AdaBoost
 from models.MLP import MLP
+import pandas as pd
 import copy
-
+t = 0
 
 class Selector(object):
     def __init__(self, model_name, features_df, CUTOFF, s2pred, merging, n_est, class_weights):
@@ -32,7 +33,7 @@ class Selector(object):
             cols = total_cols + [c]
             x_df = copy.deepcopy(self.features_df)
             x_df = x_df[cols].dropna()
-            print(x_df.columns)
+            print(c)
             l = x_df.shape[0]
             X_train = np.array(x_df.iloc[:int(l*0.75)].drop(['timestamp'], axis=1))
             y_train = np.array(self.features_df['y_bins'].iloc[:int(l*0.75)])
@@ -60,19 +61,39 @@ class Selector(object):
         d = {'feature': c, 'measure': np.mean(df_to_zero['y'])}
         return d
 
+    def best_ten(self):
+        y_cols = ['y', 'y_R^2', 'y%', 'y*r2', 'y_bins']
+        model = None
+        df = self.features_df.drop(['timestamp'] + y_cols + self.base_cols, axis=1)
+        X_train = np.array(df)
+        y_train = np.array(self.features_df['y_bins'])
+        if 'AdaBoost' in self.model_name:
+            model = AdaBoost(self.n_est, self.class_weights)
+        if 'RandomForest' in self.model_name:
+            model = RandomForest(self.n_est, self.class_weights)
+        model.fit(X=X_train, y=y_train)
+        f = df.columns
+        imp = model.get_feture_importances()
+        cols_to_choose = pd.DataFrame({'features': f, 'importance': imp}).sort_values('importance', ascending=False)[
+                             'features'].iloc[:3]
+        return cols_to_choose
+
     def execute(self, given_list=None, select=True):
         if select:
             keep_picking = True
             while (keep_picking):
                 if given_list is None:
-                    cols_to_choose = list(self.features_df.columns)
-                    cols_to_choose.remove('y')
-                    cols_to_choose.remove('y_R^2')
-                    cols_to_choose.remove('y%')
-                    cols_to_choose.remove('y*r2')
-                    cols_to_choose.remove('y_bins')
+                    # cols_to_choose = list(self.features_df.columns)
+                    # cols_to_choose.remove('y')
+                    # cols_to_choose.remove('y_R^2')
+                    # cols_to_choose.remove('y%')
+                    # cols_to_choose.remove('y*r2')
+                    # cols_to_choose.remove('y_bins')
+                    cols_to_choose = self.best_ten()
+
                 else:
                     cols_to_choose = given_list
+                # TODO: timing and reduce time
                 self.temp_results = Parallel(n_jobs=3)(
                     delayed(self.features_testing)(e) for e in cols_to_choose)
                 self.temp_results = [tr for tr in self.temp_results if tr is not None]

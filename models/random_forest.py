@@ -9,5 +9,5 @@ class RandomForest(Model):
         self.model = RandomForestClassifier(n_estimators=n_estimators, class_weight=class_weight)
         self.name = "Random forest"
 
-    def get_feture_importances(self, s):
+    def get_feture_importances(self):
         return self.model.feature_importances_
