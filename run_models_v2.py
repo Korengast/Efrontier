@@ -14,15 +14,15 @@ import datetime as dt
 import copy
 
 CUTOFF = 0.15  # in percents. The minimal value of ascending
-N_ESTIMATORS = [1]
+N_ESTIMATORS = [100]
 EPOCHS = 10
 MOUNTH_DATA_ROWS = int(30 * 24 * (60 / 5))
 s_date = '31 Jan, 2017'
 # s_date = '01 Jan, 2019'
 e_date = '31 Jan, 2019'
 # e_date = '02 Jan, 2019'
-# SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
-SYMBOLS_TO_USE = ['NEOUSDT']
+SYMBOLS_TO_USE = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'LTCUSDT', 'NEOUSDT']
+# SYMBOLS_TO_USE = ['NEOUSDT']
 pull_interval = '5M'
 data_interval = '30M'
 data_intervals = pull_interval + '_' + data_interval
@@ -71,14 +71,15 @@ features = join_assets(SYMBOLS_TO_USE, features_file_names, data_intervals, is_f
 # features = features[base_cols]
 features = features.dropna()
 # features = []
-jklines = join_assets(SYMBOLS_TO_USE, kl_file_names, data_intervals, is_features=False)
+# jklines = join_assets(SYMBOLS_TO_USE, kl_file_names, data_intervals, is_features=False)
+jklines = []
 
 # models['LSTMc_' + str(EPOCHS)] = LSTM_classifier(jklines.shape[1] - 1, 7)
 # models['LSTMr_' + str(EPOCHS)] = LSTM_regressor(jklines.shape[1] - 1, 7)
 # TODO:
 # models['conv1D'] = conv1D_model(jklines.shape[1] - 1, 10, 7)
 
-TOTAL_DATA_ROWS = jklines.shape[0]
+TOTAL_DATA_ROWS = features.shape[0]
 # cross_data_endpoints = list(range(6 * MOUNTH_DATA_ROWS, TOTAL_DATA_ROWS, MOUNTH_DATA_ROWS))
 cross_data_endpoints = [TOTAL_DATA_ROWS]
 y_cols = ['y', 'y_R^2', 'y%', 'y*r2', 'y_bins']

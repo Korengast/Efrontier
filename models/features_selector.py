@@ -32,10 +32,10 @@ class Selector(object):
         if c not in total_cols:
             cols = total_cols + [c]
             x_df = copy.deepcopy(self.features_df)
-            x_df = x_df[cols].dropna()
+            x_df = x_df.dropna()
             print(c)
             l = x_df.shape[0]
-            X_train = np.array(x_df.iloc[:int(l*0.75)].drop(['timestamp'], axis=1))
+            X_train = np.array(x_df[cols].iloc[:int(l*0.75)].drop(['timestamp'], axis=1))
             y_train = np.array(self.features_df['y_bins'].iloc[:int(l*0.75)])
 
             # X_train, X_valid, y_train, y_valid, df_train, df_train_y, df_valid, df_valid_y = \
@@ -47,8 +47,8 @@ class Selector(object):
                 model = RandomForest(self.n_est, self.class_weights)
             # model = MLP()
             model.fit(X=X_train, y=y_train)
-            self.features_df['predictions'] = model.predict(x_df.drop('timestamp', axis=1))
-            return self.features_df, c
+            x_df['predictions'] = model.predict(x_df[cols].drop('timestamp', axis=1))
+            return x_df, c
 
     def features_adding(self, t):
         df = t[0]
@@ -89,7 +89,7 @@ class Selector(object):
                     # cols_to_choose.remove('y%')
                     # cols_to_choose.remove('y*r2')
                     # cols_to_choose.remove('y_bins')
-                    cols_to_choose = self.best_k(k=10)
+                    cols_to_choose = self.best_k(k=3)
 
                 else:
                     cols_to_choose = given_list
